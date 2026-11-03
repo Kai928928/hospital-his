@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}操作日志 - HIS Pro{% endblock %}
+{% block page_title %}操作日志{% endblock %}
+{% block content %}
+<form method="get" class="search-card">
+    <input name="q" class="form-control" value="{{ q }}" placeholder="操作人姓名或账号" aria-label="操作人">
+    <select name="action" class="form-select" aria-label="操作类型"><option value="">全部操作</option>{% for value, label in action_labels.items() %}<option value="{{ value }}" {% if action == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <button class="btn btn-primary"><i class="bi bi-search" aria-hidden="true"></i>查询</button><a href="{{ url_for('auth.logs') }}" class="btn btn-outline-secondary">重置</a>
+</form>
+<div class="table-container"><div class="table-responsive"><table class="table align-middle data-table audit-table">
+    <thead><tr><th>时间</th><th>操作人</th><th>操作</th><th>对象</th><th>记录</th></tr></thead>
+    <tbody>{% for log in pagination.items %}<tr>
+        <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td><td>{{ log.actor_name }}</td><td>{{ action_labels.get(log.action, log.action) }}</td>
+        <td>{% if log.target_type == 'bill' %}<a href="{{ url_for('bill_detail', bid=log.target_id) }}">B{{ '%05d'|format(log.target_id) }}</a>{% else %}#{{ log.target_id }}{% endif %}</td><td>{{ log.summary }}</td>
+    </tr>{% else %}<tr><td colspan="5" class="empty-state">暂无符合条件的日志</td></tr>{% endfor %}</tbody>
+</table></div></div>
+<nav class="audit-pagination" aria-label="日志分页"><span>共 {{ pagination.total }} 条 · 第 {{ pagination.page }} 页</span>{% if pagination.has_prev %}<a href="{{ url_for('auth.logs', page=pagination.prev_num, q=q, action=action) }}" class="btn btn-outline-secondary" aria-label="上一页"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>{% endif %}{% if pagination.has_next %}<a href="{{ url_for('auth.logs', page=pagination.next_num, q=q, action=action) }}" class="btn btn-outline-secondary" aria-label="下一页"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>{% endif %}</nav>
+{% endblock %}

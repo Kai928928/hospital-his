@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}患者档案 - HIS{% endblock %}
+{% block page_title %}患者档案{% endblock %}
+{% block content %}
+<div class="page-heading">
+    <div>
+        <h2>患者主索引</h2>
+        <p>统一管理患者基本信息、就诊历史与费用记录。</p>
+    </div>
+    {% if can('patient_create') %}<a href="/patients/create" class="btn btn-primary"><i class="bi bi-person-plus"></i>新建患者</a>{% endif %}
+</div>
+
+<form class="search-card" method="get">
+    <input class="form-control" name="q" value="{{ q }}" placeholder="按姓名、电话、地址检索">
+    <button class="btn btn-primary"><i class="bi bi-search"></i>查询</button>
+    <a class="btn btn-outline-secondary" href="/patients">重置</a>
+</form>
+
+<div class="table-container">
+    <div class="table-shell">
+        <div class="table-responsive">
+            <table class="table align-middle data-table">
+                <thead>
+                    <tr>
+                        <th>病历号</th><th>患者</th><th>年龄</th><th>电话</th><th>住址</th><th>建档时间</th><th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in patients %}
+                    <tr>
+                        <td><strong>P{{ "%05d"|format(p.id) }}</strong></td>
+                        <td><strong>{{ p.name }}</strong><small>{{ p.gender or '未填' }}</small></td>
+                        <td>{{ p.age or '-' }}</td>
+                        <td>{{ p.phone or '-' }}</td>
+                        <td>{{ p.address or '-' }}</td>
+                        <td>{{ p.created_at.strftime('%Y-%m-%d %H:%M') if p.created_at else '-' }}</td>
+                        <td><a href="/patients/{{ p.id }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-folder2-open"></i>档案</a></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="empty-state">暂无患者数据</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

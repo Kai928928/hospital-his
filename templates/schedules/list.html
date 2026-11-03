@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}出诊排班 - HIS{% endblock %}
+{% block page_title %}出诊排班{% endblock %}
+{% block content %}
+<div class="page-heading"><h2>{{ day }} 出诊安排</h2>{% if can('schedule_create') %}<a href="{{ url_for('schedule_create', visit_date=day.isoformat()) }}" class="btn btn-primary"><i class="bi bi-calendar-plus" aria-hidden="true"></i>新增排班</a>{% endif %}</div>
+{% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+<form class="search-card" method="get">
+    <div><label for="schedule-date" class="form-label">出诊日期</label><input id="schedule-date" name="date" type="date" value="{{ day }}" class="form-control" required></div>
+    {% if current_user.role != 'doctor' %}
+    <div><label for="schedule-department" class="form-label">科室</label><select id="schedule-department" name="department_id" class="form-select"><option value="">全部科室</option>{% for dept in departments %}<option value="{{ dept.id }}" {% if department_id == dept.id %}selected{% endif %}>{{ dept.name }}</option>{% endfor %}</select></div>
+    <div><label for="schedule-doctor" class="form-label">医生</label><select id="schedule-doctor" name="doctor_id" class="form-select"><option value="">全部医生</option>{% for doctor in doctors %}<option value="{{ doctor.id }}" {% if doctor_id == doctor.id %}selected{% endif %}>{{ doctor.name }}</option>{% endfor %}</select></div>
+    {% endif %}
+    <button class="btn btn-primary align-self-end"><i class="bi bi-search" aria-hidden="true"></i>查询</button>
+</form>
+<div class="table-container"><div class="table-responsive"><table class="table align-middle data-table schedule-table">
+    <thead><tr><th>时段</th><th>医生 / 科室</th><th>挂号费</th><th>已用 / 总号源</th><th>剩余</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>{% for slot in slots %}<tr data-schedule="{{ slot.id }}">
+        <td>{{ periods[slot.period] }}</td><td><strong>{{ slot.doctor.name }}</strong><small>{{ slot.doctor.department.name }}</small></td>
+        <td>&yen;{{ '%.2f'|format(slot.fee) }}</td><td>{{ slot.booked_count }} / {{ slot.capacity }}</td><td>{{ slot.capacity - slot.booked_count }}</td>
+        <td><span class="status-badge {{ 'paid' if schedule_available(slot) else 'cancelled' }}">{{ '已结束' if schedule_has_ended(slot) else ('暂停挂号' if not slot.is_open else ('已满' if slot.booked_count >= slot.capacity else '可挂号')) }}</span></td>
+        <td class="schedule-actions">
+            {% if can('registration_create') and schedule_available(slot) %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('registration_create', visit_date=slot.visit_date.isoformat(), doctor_id=slot.doctor_id) }}"><i class="bi bi-clipboard-plus" aria-hidden="true"></i>挂号</a>{% endif %}
+            {% if can('schedule_edit') and not schedule_has_ended(slot) %}<a href="{{ url_for('schedule_edit', sid=slot.id) }}" class="btn btn-sm btn-outline-secondary" title="调整号源与费用" aria-label="调整排班"><i class="bi bi-pencil" aria-hidden="true"></i></a>{% endif %}
+            {% if can('schedule_status') and not schedule_has_ended(slot) %}<form method="post" action="{{ url_for('schedule_status', sid=slot.id) }}" class="d-inline"><input name="payment_token" type="hidden" value="{{ csrf_token() }}"><input name="opened" type="hidden" value="{{ 'no' if slot.is_open else 'yes' }}"><button class="btn btn-sm btn-outline-secondary"><i class="bi {{ 'bi-pause' if slot.is_open else 'bi-play' }}" aria-hidden="true"></i>{{ '暂停' if slot.is_open else '开放' }}</button></form>{% endif %}
+        </td>
+    </tr>{% else %}<tr><td colspan="7" class="empty-state">暂无该日期的出诊排班</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

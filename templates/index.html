@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}运营总览 - HIS{% endblock %}
+{% block page_title %}运营总览{% endblock %}
+{% block content %}
+<section class="hero-panel">
+    <div>
+        <div class="eyebrow">今日门诊态势</div>
+        <h2>{{ today.strftime('%m月%d日') }} 门诊运行概览</h2>
+        <p>聚合挂号、候诊、病历、处方与收费数据，帮助前台、医生和收费窗口快速判断当前业务压力。</p>
+    </div>
+    <div class="hero-metric">
+        <span>今日完成率</span>
+        <strong>{{ completion_rate }}%</strong>
+    </div>
+</section>
+
+<div class="metric-grid">
+    <div class="metric-card primary">
+        <span>今日挂号</span>
+        <strong>{{ today_regs }}</strong>
+        <small>已完成 {{ done_today }} / 取消 {{ cancelled_today }}</small>
+    </div>
+    <div class="metric-card warning">
+        <span>候诊队列</span>
+        <strong>{{ waiting }}</strong>
+        <small>需要医生接诊处理</small>
+    </div>
+    <div class="metric-card info">
+        <span>患者档案</span>
+        <strong>{{ total_patients }}</strong>
+        <small>{{ department_count }} 个科室 / {{ doctor_count }} 名医生</small>
+    </div>
+    <div class="metric-card danger">
+        <span>待缴账单</span>
+        <strong>{{ unpaid_bills }}</strong>
+        <small>待收 &yen;{{ "%.2f"|format(unpaid_amount) }}</small>
+    </div>
+</div>
+
+<div class="content-grid">
+    <section class="panel span-7">
+        <div class="panel-header">
+            <div>
+                <h3>候诊队列</h3>
+                <p>按挂号时间排序，优先处理最早进入队列的患者。</p>
+            </div>
+            <a href="/medical-records/create" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square"></i>接诊</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle data-table">
+                <thead><tr><th>患者</th><th>科室</th><th>医生</th><th>日期</th><th>状态</th></tr></thead>
+                <tbody>
+                {% for r in waiting_queue %}
+                <tr>
+                    <td><strong>{{ r.patient.name }}</strong><small>病历号 P{{ "%05d"|format(r.patient.id) }}</small></td>
+                    <td>{{ r.doctor.department.name }}</td>
+                    <td>{{ r.doctor.name }}</td>
+                    <td>{{ r.reg_date }}</td>
+                    <td><span class="status-badge waiting">待就诊</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="empty-state">当前没有候诊患者</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel span-5">
+        <div class="panel-header">
+            <div>
+                <h3>快捷业务</h3>
+                <p>覆盖门诊核心闭环。</p>
+            </div>
+        </div>
+        <div class="quick-grid">
+            <a href="/patients/create"><i class="bi bi-person-plus"></i><span>患者建档</span></a>
+            <a href="/registrations/create"><i class="bi bi-clipboard-plus"></i><span>门诊挂号</span></a>
+            <a href="/medical-records/create"><i class="bi bi-journal-plus"></i><span>医生接诊</span></a>
+            <a href="/prescriptions/create"><i class="bi bi-capsule-pill"></i><span>开立处方</span></a>
+            <a href="/bills?status=unpaid"><i class="bi bi-cash-coin"></i><span>收费结算</span></a>
+            <a href="/patients"><i class="bi bi-search"></i><span>档案检索</span></a>
+        </div>
+    </section>
+
+    <section class="panel span-6">
+        <div class="panel-header">
+            <div>
+                <h3>科室负载</h3>
+                <p>今日各科室挂号量。</p>
+            </div>
+        </div>
+        <div class="load-list">
+            {% for name, count in department_load %}
+            {% set percent = (count / today_regs * 100) if today_regs else 0 %}
+            <div class="load-item">
+                <div><strong>{{ name }}</strong><span>{{ count }} 人次</span></div>
+                <div class="progress"><div class="progress-bar" style="width: {{ percent }}%"></div></div>
+            </div>
+            {% else %}
+            <div class="empty-state">今日暂无科室挂号数据</div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="panel span-6">
+        <div class="panel-header">
+            <div>
+                <h3>最近病历</h3>
+                <p>医生完成的最新就诊记录。</p>
+            </div>
+            <a href="/medical-records" class="link-more">查看全部</a>
+        </div>
+        <div class="activity-list">
+            {% for mr in latest_records %}
+            <a href="/medical-records/{{ mr.id }}" class="activity-item">
+                <span class="activity-icon"><i class="bi bi-file-medical"></i></span>
+                <span>
+                    <strong>{{ mr.registration.patient.name }} - {{ mr.diagnosis or '未填写诊断' }}</strong>
+                    <small>{{ mr.registration.doctor.name }} / {{ mr.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                </span>
+            </a>
+            {% else %}
+            <div class="empty-state">暂无就诊记录</div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}

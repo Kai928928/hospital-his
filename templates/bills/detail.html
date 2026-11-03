@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}账单明细 - HIS{% endblock %}
+{% block page_title %}账单明细{% endblock %}
+{% block content %}
+<div class="content-grid bill-layout">
+    <section class="panel bill-patient">
+        <div class="panel-header">
+            <div>
+                <h3>B{{ "%05d"|format(bill.id) }}</h3>
+                <p>{{ bill_type }}收费单</p>
+            </div>
+            {% if bill.is_void %}
+            <span class="status-badge cancelled">已作废</span>
+            {% elif bill.refund %}
+            <span class="status-badge refunded">已退费</span>
+            {% elif bill.is_paid %}
+            <span class="status-badge paid">已缴费</span>
+            {% else %}
+            <span class="status-badge unpaid">待缴费</span>
+            {% endif %}
+        </div>
+        <div class="kv-list">
+            <div><span>患者</span><strong>{{ bill.registration.patient.name }}</strong></div>
+            <div><span>病历号</span><strong>P{{ "%05d"|format(bill.registration.patient.id) }}</strong></div>
+            <div><span>科室</span><strong>{{ bill.registration.doctor.department.name }}</strong></div>
+            <div><span>医生</span><strong>{{ bill.registration.doctor.name }}</strong></div>
+            <div><span>挂号日期</span><strong>{{ bill.registration.reg_date }}</strong></div>
+            {% if bill.registration.appointment %}<div><span>就诊时段 / 号序</span><strong>{{ periods[bill.registration.appointment.schedule.period] }} · {{ '%03d'|format(bill.registration.appointment.queue_number) }}号</strong></div>{% endif %}
+            <div><span>缴费时间</span><strong>{{ bill.paid_at.strftime('%Y-%m-%d %H:%M') if bill.paid_at else '-' }}</strong></div>
+        </div>
+    </section>
+
+    <section class="panel receipt-panel">
+        <div class="panel-header">
+            <div>
+                <h3>费用明细</h3>
+                <p>收费前请核对项目、数量和金额。</p>
+            </div>
+            <strong class="receipt-total">&yen;{{ "%.2f"|format(bill.total_amount) }}</strong>
+        </div>
+        {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+        {% if summary.error and summary.error != error %}<div class="alert alert-danger" role="alert">{{ summary.error }}</div>{% endif %}
+        {% if summary.legacy_combined %}<div class="alert alert-info">此历史账单合并收取挂号费与药费，以下已列出完整项目。</div>{% endif %}
+        <div class="table-responsive">
+            <table class="table align-middle data-table">
+                <thead><tr><th>项目</th><th>规格/说明</th><th>数量</th><th>单价</th><th>金额</th></tr></thead>
+                <tbody>
+                    {% for item in bill_items %}
+                    <tr>
+                        <td><strong>{{ item.name }}</strong></td>
+                        <td>{{ item.spec }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>&yen;{{ "%.2f"|format(item.unit_price) }}</td>
+                        <td class="money">&yen;{{ "%.2f"|format(item.amount) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="empty-state">暂无费用明细</td></tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot><tr><td colspan="4">明细合计</td><td class="money">&yen;{{ "%.2f"|format(summary.total) }}</td></tr></tfoot>
+            </table>
+        </div>
+
+        <div class="settlement-box">
+            <div>
+                <span>应收合计</span>
+                <strong>&yen;{{ "%.2f"|format(bill.total_amount) }}</strong>
+            </div>
+            <div>
+                <span>支付方式</span>
+                <strong>{{ payment_methods[bill.payment.method] if bill.payment else ('历史记录未登记' if bill.is_paid else '待登记') }}</strong>
+            </div>
+            <div>
+                <span>结算状态</span>
+                <strong>{% if bill.is_void %}已作废{% elif bill.refund %}已全额退费{% elif bill.is_paid %}已结清{% else %}待收款{% endif %}</strong>
+            </div>
+        </div>
+
+        {% if bill.payment %}
+        <div class="kv-list payment-record">
+            <div><span>收款流水号</span><strong id="receipt-number">{{ bill.payment.receipt_no }}</strong></div>
+            <div><span>收款操作人</span><strong id="payment-operator">{{ operators.get('bill.pay', '历史未登记') }}</strong></div>
+            <div><span>实收金额</span><strong>&yen;{{ "%.2f"|format(bill.payment.received_amount) }}</strong></div>
+            <div><span>现金找零</span><strong>&yen;{{ "%.2f"|format(bill.payment.change_amount) }}</strong></div>
+        </div>
+        {% elif bill.is_paid %}
+        <p class="text-muted mt-3">历史已缴账单保留原收款时间，支付方式与流水号未登记。</p>
+        {% elif not summary.error %}
+        <form method="post" action="{{ url_for('bill_pay', bid=bill.id) }}" id="payment-form" class="payment-form">
+            <input type="hidden" name="payment_token" value="{{ payment_token }}">
+            <input type="hidden" name="expected_amount" value="{{ '%.2f'|format(bill.total_amount) }}">
+            <h3>收款登记</h3>
+            <div class="payment-fields">
+                <div>
+                    <label for="payment-method" class="form-label">支付方式</label>
+                    <select name="payment_method" id="payment-method" class="form-select" required>
+                        {% for value, label in payment_methods.items() %}
+                        <option value="{{ value }}" {% if request.form.get('payment_method', 'cash') == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="received-amount" class="form-label">实收金额（元）</label>
+                    <input id="received-amount" name="received_amount" type="number" class="form-control" step="0.01" min="{{ '%.2f'|format(bill.total_amount) }}" max="99999999.99" value="{{ request.form.get('received_amount', '%.2f'|format(bill.total_amount)) }}" required>
+                </div>
+                <div class="change-preview"><span>现金找零</span><strong id="change-amount" aria-live="polite">&yen;0.00</strong></div>
+            </div>
+            <div class="form-check my-3">
+                <input type="checkbox" class="form-check-input" name="confirmed" value="yes" id="payment-confirmed" required>
+                <label for="payment-confirmed" class="form-check-label">已核对患者、费用明细，并确认收到款项</label>
+            </div>
+            <button class="btn btn-success" id="confirm-payment"><i class="bi bi-check2-circle"></i>确认收款 &yen;{{ '%.2f'|format(bill.total_amount) }}</button>
+        </form>
+        {% endif %}
+
+        {% if bill.refund %}
+        <section class="refund-record" aria-label="退费记录">
+            <h3><i class="bi bi-arrow-counterclockwise"></i>全额退费记录</h3>
+            <div class="kv-list">
+                <div><span>退费流水号</span><strong id="refund-number">{{ bill.refund.refund_no }}</strong></div>
+                <div><span>退费操作人</span><strong id="refund-operator">{{ operators.get('bill.refund', '历史未登记') }}</strong></div>
+                <div><span>退费金额</span><strong class="expense-money">&yen;{{ '%.2f'|format(bill.refund.amount) }}</strong></div>
+                <div><span>退费方式</span><strong>原路退回 · {{ payment_methods[bill.payment.method] }}</strong></div>
+                <div><span>退费时间</span><strong>{{ bill.refund.refunded_at.strftime('%Y-%m-%d %H:%M:%S') }}</strong></div>
+                <div><span>退费原因</span><strong id="refund-reason-text">{{ bill.refund.reason }}</strong></div>
+                <div><span>账单净收入</span><strong>&yen;0.00</strong></div>
+            </div>
+        </section>
+        {% elif bill.is_paid and refund_error %}
+        <p class="text-muted mt-3 refund-unavailable">{{ refund_error }}</p>
+        {% elif bill.is_paid %}
+        <details class="refund-section" {% if request.endpoint == 'bill_refund' and error %}open{% endif %}>
+            <summary><i class="bi bi-arrow-counterclockwise"></i>办理全额退费</summary>
+            <form method="post" action="{{ url_for('bill_refund', bid=bill.id) }}" id="refund-form">
+                <input type="hidden" name="payment_token" value="{{ payment_token }}">
+                <input type="hidden" name="expected_amount" value="{{ '%.2f'|format(bill.payment.amount) }}">
+                <input type="hidden" name="payment_receipt" value="{{ bill.payment.receipt_no }}">
+                <p class="mt-3">全额退费 <strong>&yen;{{ '%.2f'|format(bill.payment.amount) }}</strong> · 原路退回 {{ payment_methods[bill.payment.method] }}</p>
+                <label class="form-label" for="refund-reason">退费原因</label>
+                <textarea name="reason" id="refund-reason" class="form-control" maxlength="500" rows="3" required>{{ request.form.get('reason', '') }}</textarea>
+                <div class="form-check my-3">
+                    <input type="checkbox" class="form-check-input" id="refund-confirmed" name="confirmed" value="yes" required>
+                    <label for="refund-confirmed" class="form-check-label">已核对原收款流水，并确认已向患者退还款项</label>
+                </div>
+                <button class="btn btn-outline-danger" id="confirm-refund"><i class="bi bi-arrow-counterclockwise"></i>确认登记全额退费</button>
+            </form>
+        </details>
+        {% endif %}
+
+        <div class="mt-3 d-flex gap-2 flex-wrap receipt-actions">
+            <a href="/bills" class="btn btn-outline-secondary">返回账单</a>
+            <a href="{{ url_for('bill_transactions', q=bill.registration.patient.name) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left-right"></i>收支流水</a>
+            {% if bill.is_paid %}
+            <button type="button" class="btn btn-outline-primary" onclick="window.print()"><i class="bi bi-printer"></i>{{ '打印收退费凭条' if bill.refund else '打印收款凭条' }}</button>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='billing.js') }}"></script>{% endblock %}

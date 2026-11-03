@@ -1,0 +1,4 @@
+<nav class="billing-tabs" aria-label="收费业务">
+    <a href="{{ url_for('bill_list') }}" {% if request.endpoint == 'bill_list' %}class="active" aria-current="page"{% endif %}><i class="bi bi-receipt" aria-hidden="true"></i>账单管理</a>
+    <a href="{{ url_for('bill_transactions') }}" {% if request.endpoint == 'bill_transactions' %}class="active" aria-current="page"{% endif %}><i class="bi bi-arrow-left-right" aria-hidden="true"></i>收支流水</a>
+</nav>

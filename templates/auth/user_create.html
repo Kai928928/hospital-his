@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}新增账号 - HIS Pro{% endblock %}
+{% block page_title %}新增账号{% endblock %}
+{% block content %}
+<form method="post" class="account-form">
+    <input type="hidden" name="payment_token" value="{{ csrf_token() }}">
+    {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+    {% include "auth/_account_fields.html" %}
+    <div class="mb-3"><label for="user-role" class="form-label">岗位</label><select id="user-role" name="role" class="form-select" required>{% for value, label in role_labels.items() %}<option value="{{ value }}" {% if request.form.get('role', 'frontdesk') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    <div class="mb-3" id="doctor-assignment"><label for="assigned-doctor" class="form-label">接诊医生</label><select id="assigned-doctor" name="doctor_id" class="form-select"><option value="">请选择</option>{% for doctor in doctors %}<option value="{{ doctor.id }}" {% if request.form.get('doctor_id') == doctor.id|string %}selected{% endif %}>{{ doctor.department.name }} / {{ doctor.name }}</option>{% endfor %}</select></div>
+    <button class="btn btn-primary">创建账号</button><a href="{{ url_for('auth.users') }}" class="btn btn-outline-secondary">返回</a>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+const role = document.querySelector('#user-role');
+const assignment = document.querySelector('#doctor-assignment');
+function updateDoctorAssignment() {
+    const doctor = role.value === 'doctor';
+    assignment.hidden = !doctor;
+    assignment.querySelector('select').required = doctor;
+    assignment.querySelector('select').disabled = !doctor;
+}
+role.addEventListener('change', updateDoctorAssignment);
+updateDoctorAssignment();
+</script>
+{% endblock %}

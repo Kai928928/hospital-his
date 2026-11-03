@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}医生资料 - HIS{% endblock %}
+{% block page_title %}医生资料{% endblock %}
+{% block content %}
+<div class="page-heading">
+    <div>
+        <h2>医生资源</h2>
+        <p>按科室查看医生资源，辅助前台挂号分诊。</p>
+    </div>
+    {% if can('doctor_create') %}<a href="/doctors/create" class="btn btn-primary"><i class="bi bi-person-plus"></i>添加医生</a>{% endif %}
+</div>
+
+<form class="search-card" method="get">
+    <input class="form-control" name="q" value="{{ q }}" placeholder="医生、职称或科室">
+    <select class="form-select" name="department_id">
+        <option value="">全部科室</option>
+        {% for dept in departments %}
+        <option value="{{ dept.id }}" {% if department_id == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+        {% endfor %}
+    </select>
+    <button class="btn btn-primary"><i class="bi bi-funnel"></i>筛选</button>
+    <a class="btn btn-outline-secondary" href="/doctors">重置</a>
+</form>
+
+<div class="table-container">
+    <div class="table-shell">
+        <div class="table-responsive">
+            <table class="table align-middle data-table">
+                <thead><tr><th>工号</th><th>医生</th><th>科室</th><th>职称</th><th>联系电话</th><th>今日状态</th></tr></thead>
+                <tbody>
+                    {% for d in doctors %}
+                    <tr>
+                        <td>D{{ "%04d"|format(d.id) }}</td>
+                        <td><strong>{{ d.name }}</strong><small>门诊医生</small></td>
+                        <td>{{ d.department.name }}</td>
+                        <td>{{ d.title or '-' }}</td>
+                        <td>{{ d.phone or '-' }}</td>
+                        <td><a href="{{ url_for('schedule_list', doctor_id=d.id) }}"><span class="status-badge {{ 'paid' if availability.get(d.id, 0) else 'cancelled' }}">{{ ('剩余 ' ~ availability[d.id] ~ ' 号') if availability.get(d.id, 0) else '暂无可挂号号源' }}</span></a></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="empty-state">暂无医生数据</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

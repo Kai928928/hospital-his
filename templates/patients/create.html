@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}新建患者 - HIS{% endblock %}
+{% block page_title %}新建患者{% endblock %}
+{% block content %}
+<div class="form-panel">
+    <div class="panel-header">
+        <div>
+            <h3>患者建档</h3>
+            <p>录入患者主索引信息，用于后续挂号、病历和收费关联。</p>
+        </div>
+    </div>
+    <form method="post" class="row g-3">
+        <input type="hidden" name="payment_token" value="{{ csrf_token() }}">
+        <div class="col-md-6">
+            <label class="form-label">姓名</label>
+            <input name="name" class="form-control" required>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">性别</label>
+            <select name="gender" class="form-select">
+                <option value="男">男</option>
+                <option value="女">女</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">年龄</label>
+            <input name="age" type="number" min="0" max="130" class="form-control">
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">联系电话</label>
+            <input name="phone" class="form-control">
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">联系地址</label>
+            <input name="address" class="form-control">
+        </div>
+        <div class="col-12 d-flex gap-2">
+            <button class="btn btn-primary"><i class="bi bi-check2-circle"></i>保存档案</button>
+            <a href="/patients" class="btn btn-outline-secondary">返回</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}写病历 - HIS{% endblock %}
+{% block page_title %}写病历{% endblock %}
+{% block content %}
+<div class="form-panel">
+    <div class="panel-header">
+        <div>
+            <h3>电子病历录入</h3>
+            <p>仅显示待就诊挂号，保存后自动将挂号状态改为已完成。</p>
+        </div>
+    </div>
+    <form method="post" class="row g-3">
+        <input type="hidden" name="payment_token" value="{{ csrf_token() }}">
+        <div class="col-12">
+            <label class="form-label">候诊患者</label>
+            <select name="registration_id" class="form-select" required>
+                {% for r in registrations %}
+                <option value="{{ r.id }}">{{ r.reg_date }} / {{ r.patient.name }} / {{ r.doctor.department.name }} / {{ r.doctor.name }}{% if r.appointment %} / {{ periods[r.appointment.schedule.period] }} {{ '%03d'|format(r.appointment.queue_number) }}号{% endif %}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12">
+            <label class="form-label">主诉</label>
+            <textarea name="chief_complaint" class="form-control" rows="3" placeholder="患者主要症状、持续时间、诱因等"></textarea>
+        </div>
+        <div class="col-12">
+            <label class="form-label">诊断</label>
+            <textarea name="diagnosis" class="form-control" rows="3" placeholder="初步诊断或明确诊断"></textarea>
+        </div>
+        <div class="col-12">
+            <label class="form-label">治疗方案</label>
+            <textarea name="treatment" class="form-control" rows="4" placeholder="检查、用药、复诊建议等"></textarea>
+        </div>
+        <div class="col-12 d-flex gap-2">
+            <button class="btn btn-primary" {% if not registrations %}disabled{% endif %}><i class="bi bi-check2-circle"></i>保存病历</button>
+            <a href="/medical-records" class="btn btn-outline-secondary">返回</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

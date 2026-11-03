@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ '调整排班' if slot else '新增排班' }} - HIS{% endblock %}
+{% block page_title %}{{ '调整排班' if slot else '新增排班' }}{% endblock %}
+{% block content %}
+<form method="post" class="account-form">
+    <input type="hidden" name="payment_token" value="{{ csrf_token() }}">
+    {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+    {% if slot %}
+    <input type="hidden" name="revision" value="{{ slot.revision }}">
+    <p>{{ slot.doctor.department.name }} / {{ slot.doctor.name }} · {{ slot.visit_date }} · {{ periods[slot.period] }}</p>
+    <p>已使用 {{ slot.booked_count }} 个号源</p>
+    {% else %}
+    <div class="mb-3"><label for="doctor-id" class="form-label">接诊医生</label><select id="doctor-id" name="doctor_id" class="form-select" required><option value="">请选择医生</option>{% for doctor in doctors %}<option value="{{ doctor.id }}" {% if request.values.get('doctor_id') == doctor.id|string %}selected{% endif %}>{{ doctor.department.name }} / {{ doctor.name }}</option>{% endfor %}</select></div>
+    <div class="mb-3"><label for="visit-date" class="form-label">出诊日期</label><input id="visit-date" name="visit_date" type="date" min="{{ today }}" value="{{ request.values.get('visit_date', today.isoformat()) }}" class="form-control" required></div>
+    <div class="mb-3"><label for="period" class="form-label">出诊时段</label><select id="period" name="period" class="form-select" required>{% for value, label in periods.items() %}<option value="{{ value }}" {% if request.form.get('period') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    {% endif %}
+    <div class="mb-3"><label for="capacity" class="form-label">号源数量</label><input id="capacity" name="capacity" type="number" min="{{ slot.booked_count if slot and slot.booked_count else 1 }}" max="999" step="1" value="{{ request.form.get('capacity', slot.capacity if slot else 30) }}" class="form-control" required></div>
+    <div class="mb-3"><label for="schedule-fee" class="form-label">挂号费（元）</label><input id="schedule-fee" name="fee" type="number" min="0" max="99999999.99" step="0.01" value="{{ request.form.get('fee', '%.2f'|format(slot.fee) if slot else '10.00') }}" class="form-control" required></div>
+    <button class="btn btn-primary"><i class="bi bi-check2" aria-hidden="true"></i>保存排班</button><a href="{{ url_for('schedule_list', date=slot.visit_date.isoformat() if slot else request.values.get('visit_date', today.isoformat())) }}" class="btn btn-outline-secondary">返回</a>
+</form>
+{% endblock %}

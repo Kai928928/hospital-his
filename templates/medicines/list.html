@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}药品目录 - HIS{% endblock %}
+{% block page_title %}药品目录{% endblock %}
+{% block content %}
+<div class="page-heading">
+    <div><h2>药品目录</h2><p>共 {{ page.total }} 项 · 价格单位：元</p></div>
+    {% if can('medicines.create') %}<a class="btn btn-primary" href="{{ url_for('medicines.create') }}"><i class="bi bi-plus-circle"></i>新增药品</a>{% endif %}
+</div>
+<form class="search-card" method="get">
+    <input class="form-control" name="q" value="{{ q }}" placeholder="编码、名称或规格" aria-label="搜索药品">
+    <select class="form-select" name="status" aria-label="药品状态">
+        {% for value, label in [('active', '在用药品'), ('inactive', '已停用'), ('all', '全部状态')] %}<option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-primary"><i class="bi bi-search"></i>查询</button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('medicines.list_') }}">重置</a>
+</form>
+<div class="table-container"><div class="table-responsive">
+    <table class="table align-middle data-table medicine-table">
+        <thead><tr><th>编码</th><th>药品名称</th><th>规格</th><th>计价单位</th><th>单价</th><th>状态</th>{% if can('medicines.edit') %}<th>操作</th>{% endif %}</tr></thead>
+        <tbody>{% for medicine in page.items %}
+            <tr data-medicine-id="{{ medicine.id }}">
+                <td>{{ medicine.code }}</td><td><strong>{{ medicine.name }}</strong></td><td>{{ medicine.specification }}</td>
+                <td>{{ medicine.unit }}</td><td class="money">&yen;{{ '%.2f'|format(medicine.price) }}</td>
+                <td><span class="status-badge {{ 'done' if medicine.is_active else 'cancelled' }}">{{ '在用' if medicine.is_active else '已停用' }}</span></td>
+                {% if can('medicines.edit') %}<td><div class="d-flex gap-2">
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('medicines.edit', mid=medicine.id) }}" title="编辑药品" aria-label="编辑药品"><i class="bi bi-pencil"></i></a>
+                    <form method="post" action="{{ url_for('medicines.status', mid=medicine.id) }}">
+                        <input type="hidden" name="payment_token" value="{{ csrf_token() }}"><input type="hidden" name="revision" value="{{ medicine.revision }}">
+                        <input type="hidden" name="active" value="{{ 'no' if medicine.is_active else 'yes' }}">
+                        <button class="btn btn-sm btn-outline-secondary" title="{{ '停用药品' if medicine.is_active else '启用药品' }}" aria-label="{{ '停用药品' if medicine.is_active else '启用药品' }}"><i class="bi {{ 'bi-pause-circle' if medicine.is_active else 'bi-play-circle' }}"></i></button>
+                    </form>
+                </div></td>{% endif %}
+            </tr>
+        {% else %}<tr><td colspan="7" class="empty-state">暂无符合条件的药品</td></tr>{% endfor %}</tbody>
+    </table>
+</div></div>
+<nav class="d-flex align-items-center gap-3 mt-3" aria-label="药品分页">
+    <span>共 {{ page.total }} 项 · 第 {{ page.page }} / {{ page.pages or 1 }} 页</span>
+    {% if page.has_prev %}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('medicines.list_', q=q, status=status, page=page.prev_num) }}" aria-label="上一页"><i class="bi bi-chevron-left"></i></a>{% endif %}
+    {% if page.has_next %}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('medicines.list_', q=q, status=status, page=page.next_num) }}" aria-label="下一页"><i class="bi bi-chevron-right"></i></a>{% endif %}
+</nav>
+{% endblock %}

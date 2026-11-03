@@ -1,0 +1,15 @@
+{% extends "auth/layout.html" %}
+{% block title %}{{ '创建管理员' if setup else '登录' }} - HIS Pro{% endblock %}
+{% block content %}
+<h1>{{ '创建管理员' if setup else '工作人员登录' }}</h1>
+{% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+<form method="post" id="login-form">
+    <input type="hidden" name="payment_token" value="{{ csrf_token() }}">
+    {% if setup %}{% include "auth/_account_fields.html" %}{% else %}
+    <input type="hidden" name="next" value="{{ request.args.get('next', '/') }}">
+    <div class="mb-3"><label for="username" class="form-label">账号</label><input id="username" name="username" class="form-control" value="{{ request.form.get('username', '') }}" maxlength="32" autocomplete="username" required autofocus></div>
+    <div class="mb-3"><label for="password" class="form-label">密码</label><input id="password" name="password" type="password" class="form-control" maxlength="128" autocomplete="current-password" required></div>
+    {% endif %}
+    <button class="btn btn-primary w-100" type="submit">{{ '创建管理员' if setup else '登录' }}</button>
+</form>
+{% endblock %}

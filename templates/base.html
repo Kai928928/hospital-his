@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}HIS 医院信息系统{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <a class="brand" href="/">
+            <span class="brand-mark"><i class="bi bi-hospital"></i></span>
+            <span>
+                <strong>HIS Pro</strong>
+                <small>医院信息系统</small>
+            </span>
+        </a>
+        <nav class="side-nav">
+            {% if can('index') %}<a href="/" class="{% if request.endpoint == 'index' %}active{% endif %}"><i class="bi bi-grid-1x2"></i>运营总览</a>{% endif %}
+            <a href="/patients" class="{% if request.endpoint and request.endpoint.startswith('patient') %}active{% endif %}"><i class="bi bi-person-vcard"></i>患者档案</a>
+            {% if can('doctor_list') %}<a href="/doctors" class="{% if request.endpoint and request.endpoint.startswith('doctor') %}active{% endif %}"><i class="bi bi-person-badge"></i>医生资料</a>{% endif %}
+            {% if can('schedule_list') %}<a href="{{ url_for('schedule_list') }}" class="{% if request.endpoint and request.endpoint.startswith('schedule') %}active{% endif %}"><i class="bi bi-calendar-week"></i>出诊排班</a>{% endif %}
+            {% if can('registration_list') %}<a href="/registrations" class="{% if request.endpoint and request.endpoint.startswith('registration') %}active{% endif %}"><i class="bi bi-clipboard2-pulse"></i>门诊挂号</a>{% endif %}
+            {% if can('medical_record_list') %}<a href="/medical-records" class="{% if request.endpoint and request.endpoint.startswith('medical_record') %}active{% endif %}"><i class="bi bi-journal-medical"></i>电子病历</a>{% endif %}
+            {% if can('prescription_list') %}<a href="/prescriptions" class="{% if request.endpoint and request.endpoint.startswith('prescription') %}active{% endif %}"><i class="bi bi-capsule"></i>处方医嘱</a>{% endif %}
+            {% if can('medicines.list_') %}<a href="{{ url_for('medicines.list_') }}" class="{% if request.blueprint == 'medicines' %}active{% endif %}"><i class="bi bi-capsule-pill"></i>药品目录</a>{% endif %}
+            {% if can('bill_list') %}<a href="/bills" class="{% if request.endpoint and request.endpoint.startswith('bill') %}active{% endif %}"><i class="bi bi-receipt"></i>收费结算</a>{% endif %}
+            {% if can('auth.users') %}<a href="{{ url_for('auth.users') }}" class="{% if request.endpoint in ['auth.users', 'auth.user_create'] %}active{% endif %}"><i class="bi bi-people"></i>人员账号</a>{% endif %}
+            {% if can('auth.logs') %}<a href="{{ url_for('auth.logs') }}" class="{% if request.endpoint == 'auth.logs' %}active{% endif %}"><i class="bi bi-clock-history"></i>操作日志</a>{% endif %}
+        </nav>
+        <div class="sidebar-footer">
+            <span class="status-dot"></span>
+            <span>系统运行正常</span>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <div>
+                <div class="eyebrow">门诊业务中心</div>
+                <h1>{% block page_title %}医院信息系统{% endblock %}</h1>
+            </div>
+            <div class="topbar-actions">
+                <span class="date-pill"><i class="bi bi-calendar3"></i>{{ today.strftime('%Y-%m-%d') }}</span>
+                {% if can('registration_create') %}<a href="/registrations/create" class="btn btn-primary"><i class="bi bi-plus-circle"></i>新建挂号</a>{% endif %}
+                {% if current_user %}
+                <span class="signed-in-user">{{ current_user.display_name }} · {{ role_labels[current_user.role] }}</span>
+                <a href="{{ url_for('auth.password') }}" class="btn btn-outline-secondary" title="修改密码" aria-label="修改密码"><i class="bi bi-key" aria-hidden="true"></i></a>
+                <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="payment_token" value="{{ csrf_token() }}"><button class="btn btn-outline-secondary" title="退出登录" aria-label="退出登录"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></button></form>
+                {% endif %}
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-stack">
+            {% for category, msg in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ msg }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

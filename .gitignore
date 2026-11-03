@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 虚拟环境
+venv/
+.venv/
+env/
+ENV/
+
+# Flask / SQLAlchemy
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# 日志与临时文件
+*.log
+*.pid
+*.swp
+.DS_Store
+Thumbs.db
+
+# IDE / 编辑器
+.vscode/
+.idea/
+.cache
+
+# 测试与覆盖率
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 环境变量与密钥
+.env
+.env.*
+*.pem
+*.key

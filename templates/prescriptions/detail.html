@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}处方详情 - HIS{% endblock %}
+{% block page_title %}处方详情{% endblock %}
+{% block content %}
+<div class="page-heading"><div><h2>RX{{ '%05d'|format(rx.id) }}</h2><p>{{ rx.medical_record.registration.patient.name }} · {{ rx.medical_record.registration.doctor.name }} · {{ rx.created_at.strftime('%Y-%m-%d %H:%M') }}</p></div><a href="{{ url_for('prescription_list') }}" class="btn btn-outline-secondary">返回</a></div>
+<p>诊断：{{ rx.medical_record.diagnosis or '未填写' }}</p>
+<div class="table-container"><div class="table-responsive"><table class="table align-middle data-table prescription-detail-table">
+    <thead><tr><th>药品 / 编码</th><th>规格</th><th>用法用量</th><th>数量 / 单位</th><th>单价</th><th>小计</th></tr></thead>
+    <tbody>{% set total = namespace(value=0) %}{% for item in rx.items %}
+        {% set total.value = total.value + item.unit_price * item.quantity %}
+        <tr><td><strong>{{ item.drug_name }}</strong><small>{{ item.catalog.code if item.catalog else '历史未登记编码' }}</small></td>
+            <td>{{ item.catalog.specification if item.catalog else '历史未登记规格' }}</td><td>{{ item.dosage or '未填写' }}</td>
+            <td>{{ item.quantity }} {{ item.catalog.unit if item.catalog else '' }}</td><td class="money">&yen;{{ '%.2f'|format(item.unit_price) }}</td><td class="money">&yen;{{ '%.2f'|format(item.unit_price * item.quantity) }}</td></tr>
+    {% endfor %}</tbody><tfoot><tr><td colspan="5">处方合计</td><td class="money">&yen;{{ '%.2f'|format(total.value) }}</td></tr></tfoot>
+</table></div></div>
+{% if can('bill_detail') %}<div class="d-flex gap-2 mt-3">{% for bill in rx.bills %}<a class="btn btn-outline-primary" href="{{ url_for('bill_detail', bid=bill.id) }}"><i class="bi bi-receipt"></i>关联账单 B{{ '%05d'|format(bill.id) }}</a>{% endfor %}</div>{% endif %}
+{% endblock %}

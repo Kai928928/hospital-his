@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}处方医嘱 - HIS{% endblock %}
+{% block page_title %}处方医嘱{% endblock %}
+{% block content %}
+<div class="page-heading">
+    <div>
+        <h2>处方医嘱</h2>
+        <p>基于病历开立处方，并自动生成收费账单。</p>
+    </div>
+    <a href="/prescriptions/create" class="btn btn-primary"><i class="bi bi-capsule-pill"></i>开处方</a>
+</div>
+
+<form class="search-card" method="get">
+    <input class="form-control" name="q" value="{{ q }}" placeholder="患者、医生或诊断">
+    <button class="btn btn-primary"><i class="bi bi-search"></i>查询</button>
+    <a class="btn btn-outline-secondary" href="/prescriptions">重置</a>
+</form>
+
+<div class="table-container">
+    <div class="table-shell">
+        <div class="table-responsive">
+            <table class="table align-middle data-table">
+                <thead><tr><th>处方号</th><th>患者</th><th>医生</th><th>诊断</th><th>药品</th><th>金额</th><th>开立时间</th></tr></thead>
+                <tbody>
+                    {% for rx in prescriptions %}
+                    {% set total = namespace(value=0) %}
+                    {% for item in rx.items %}
+                    {% set total.value = total.value + item.quantity * item.unit_price %}
+                    {% endfor %}
+                    <tr>
+                        <td><a href="{{ url_for('prescription_detail', pid=rx.id) }}">RX{{ "%05d"|format(rx.id) }}</a></td>
+                        <td><strong>{{ rx.medical_record.registration.patient.name }}</strong><small>P{{ "%05d"|format(rx.medical_record.registration.patient.id) }}</small></td>
+                        <td>{{ rx.medical_record.registration.doctor.name }}</td>
+                        <td>{{ (rx.medical_record.diagnosis or '-')[:30] }}</td>
+                        <td>{{ rx.items|length }} 种<small>{% for item in rx.items[:2] %}{{ item.drug_name }}{% if not loop.last %}、{% endif %}{% endfor %}</small></td>
+                        <td class="money">&yen;{{ "%.2f"|format(total.value) }}</td>
+                        <td>{{ rx.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="empty-state">暂无处方</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

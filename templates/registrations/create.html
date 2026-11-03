@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}预约挂号 - HIS{% endblock %}
+{% block page_title %}预约挂号{% endblock %}
+{% block content %}
+<form method="get" class="search-card appointment-search" id="appointment-search">
+    <div><label for="visit-date" class="form-label">就诊日期</label><input id="visit-date" type="date" name="visit_date" min="{{ today }}" value="{{ day }}" class="form-control" required></div>
+    <div><label for="appointment-department" class="form-label">科室</label><select id="appointment-department" name="department_id" class="form-select"><option value="">全部科室</option>{% for dept in departments %}<option value="{{ dept.id }}" {% if department_id == dept.id %}selected{% endif %}>{{ dept.name }}</option>{% endfor %}</select></div>
+    <input name="patient_id" type="hidden" value="{{ request.values.get('patient_id', '') }}">
+    <button class="btn btn-primary align-self-end"><i class="bi bi-search" aria-hidden="true"></i>查询号源</button>
+    {% if can('schedule_create') %}<a href="{{ url_for('schedule_create', visit_date=day.isoformat()) }}" class="btn btn-outline-secondary align-self-end"><i class="bi bi-calendar-plus" aria-hidden="true"></i>新增排班</a>{% endif %}
+</form>
+{% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+{% if not slots %}<div class="alert alert-info">所选日期、科室暂无出诊排班。</div>{% endif %}
+<form method="post" class="account-form" id="appointment-form">
+    <input type="hidden" name="payment_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="visit_date" value="{{ day }}">
+    <input type="hidden" name="department_id" value="{{ department_id or '' }}">
+    <input type="hidden" name="expected_fee" value="">
+    <div class="mb-3"><label for="appointment-patient" class="form-label">患者</label><select id="appointment-patient" name="patient_id" class="form-select" required><option value="">请选择患者</option>{% for patient in patients %}<option value="{{ patient.id }}" {% if request.values.get('patient_id') == patient.id|string %}selected{% endif %}>{{ patient.name }} / P{{ '%05d'|format(patient.id) }} / {{ patient.phone or '无电话' }}</option>{% endfor %}</select></div>
+    <div class="mb-3"><label for="appointment-slot" class="form-label">医生 / 时段</label><select id="appointment-slot" name="schedule_id" class="form-select" required><option value="">请选择出诊号源</option>{% for slot in slots %}<option value="{{ slot.id }}" data-fee="{{ '%.2f'|format(slot.fee) }}" {% if selected_slot == slot.id|string %}selected{% endif %} {% if not schedule_available(slot) %}disabled{% endif %}>{{ slot.doctor.department.name }} / {{ slot.doctor.name }} / {{ periods[slot.period] }} / &yen;{{ '%.2f'|format(slot.fee) }} / {{ ('剩余 ' ~ (slot.capacity - slot.booked_count) ~ ' 号') if schedule_available(slot) else ('已结束' if schedule_has_ended(slot) else ('已暂停' if not slot.is_open else '已满')) }}</option>{% endfor %}</select></div>
+    <p id="appointment-slot-summary" class="text-muted appointment-summary" aria-live="polite"></p>
+    <div class="appointment-price"><span>挂号费</span><strong id="appointment-fee">-</strong></div>
+    <button class="btn btn-primary" id="confirm-appointment" {% if not available_count or not patients %}disabled{% endif %}><i class="bi bi-check2" aria-hidden="true"></i>确认挂号</button>
+    <a href="{{ url_for('registration_list') }}" class="btn btn-outline-secondary">返回</a>
+</form>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='appointments.js') }}"></script>{% endblock %}

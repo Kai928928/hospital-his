@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}收费结算 - HIS{% endblock %}
+{% block page_title %}收费结算{% endblock %}
+{% block content %}
+{% include "bills/_tabs.html" %}
+<div class="page-heading">
+    <div>
+        <h2>门诊收费中心</h2>
+        <p>统一处理挂号费、处方药费、欠费追踪和缴费确认。</p>
+    </div>
+</div>
+
+<div class="metric-grid">
+    <div class="metric-card danger"><span>待收金额</span><strong>&yen;{{ "%.2f"|format(unpaid_amount) }}</strong><small>{{ unpaid_count }} 张未结清账单</small></div>
+    <div class="metric-card primary"><span>累计收款</span><strong>&yen;{{ "%.2f"|format(paid_amount) }}</strong><small>{{ paid_count }} 张已收账单，含已退费</small></div>
+    <div class="metric-card danger"><span>累计退费</span><strong>&yen;{{ "%.2f"|format(refunded_amount) }}</strong><small>已登记全额退费</small></div>
+    <div class="metric-card info"><span>净收入</span><strong>&yen;{{ "%.2f"|format(net_amount) }}</strong><small>累计收款减累计退费</small></div>
+</div>
+
+<form class="search-card" method="get">
+    <input class="form-control" name="q" value="{{ q }}" placeholder="按患者姓名检索">
+    <select class="form-select" name="status">
+        <option value="">全部状态</option>
+        <option value="unpaid" {% if status == 'unpaid' %}selected{% endif %}>待缴费</option>
+        <option value="paid" {% if status == 'paid' %}selected{% endif %}>已缴费</option>
+        <option value="refunded" {% if status == 'refunded' %}selected{% endif %}>已退费</option>
+        <option value="void" {% if status == 'void' %}selected{% endif %}>已作废</option>
+    </select>
+    <select class="form-select" name="type">
+        <option value="">全部类型</option>
+        <option value="registration" {% if bill_type == 'registration' %}selected{% endif %}>挂号诊查</option>
+        <option value="prescription" {% if bill_type == 'prescription' %}selected{% endif %}>药品处方</option>
+    </select>
+    <button class="btn btn-primary"><i class="bi bi-funnel"></i>筛选</button>
+    <a class="btn btn-outline-secondary" href="/bills">重置</a>
+</form>
+
+<div class="table-container">
+    <div class="table-shell">
+        <div class="table-responsive">
+            <table class="table align-middle data-table">
+                <thead>
+                    <tr>
+                        <th>账单号</th><th>类型</th><th>患者</th><th>科室/医生</th><th>金额</th><th>状态</th><th>缴费时间</th><th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bills %}
+                    <tr>
+                        <td>B{{ "%05d"|format(b.id) }}</td>
+                        <td><span class="bill-type">{{ get_bill_type(b) }}</span></td>
+                        <td><strong>{{ b.registration.patient.name }}</strong><small>P{{ "%05d"|format(b.registration.patient.id) }}</small></td>
+                        <td>{{ b.registration.doctor.department.name }}<small>{{ b.registration.doctor.name }}</small></td>
+                        <td class="money">&yen;{{ "%.2f"|format(b.total_amount) }}</td>
+                        <td>
+                            {% if b.is_void %}
+                            <span class="status-badge cancelled">已作废</span>
+                            {% elif b.refund %}
+                            <span class="status-badge refunded">已退费</span>
+                            {% elif b.is_paid %}
+                            <span class="status-badge paid">已缴费</span>
+                            {% else %}
+                            <span class="status-badge unpaid">待缴费</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ b.paid_at.strftime('%Y-%m-%d %H:%M') if b.paid_at else '-' }}{% if b.refund %}<small>退费：{{ b.refund.refunded_at.strftime('%Y-%m-%d %H:%M') }}</small>{% endif %}</td>
+                        <td class="text-nowrap">
+                            <a href="/bills/{{ b.id }}" class="btn btn-sm {% if b.is_paid or b.is_void %}btn-outline-primary{% else %}btn-success{% endif %}"><i class="bi bi-receipt"></i>{{ '明细' if b.is_paid or b.is_void else '核对收款' }}</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="empty-state">暂无账单</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

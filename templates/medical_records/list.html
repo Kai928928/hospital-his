@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}电子病历 - HIS{% endblock %}
+{% block page_title %}电子病历{% endblock %}
+{% block content %}
+<div class="page-heading">
+    <div>
+        <h2>门诊病历</h2>
+        <p>记录主诉、诊断和治疗方案，关联挂号与处方。</p>
+    </div>
+    <a href="/medical-records/create" class="btn btn-primary"><i class="bi bi-journal-plus"></i>写病历</a>
+</div>
+
+<form class="search-card" method="get">
+    <input class="form-control" name="q" value="{{ q }}" placeholder="患者、医生、科室、诊断或主诉">
+    <button class="btn btn-primary"><i class="bi bi-search"></i>查询</button>
+    <a class="btn btn-outline-secondary" href="/medical-records">重置</a>
+</form>
+
+<div class="table-container">
+    <div class="table-shell">
+        <div class="table-responsive">
+            <table class="table align-middle data-table">
+                <thead><tr><th>病历号</th><th>患者</th><th>医生</th><th>科室</th><th>主诉</th><th>诊断</th><th>时间</th><th>操作</th></tr></thead>
+                <tbody>
+                    {% for mr in records %}
+                    <tr>
+                        <td>MR{{ "%05d"|format(mr.id) }}</td>
+                        <td><strong>{{ mr.registration.patient.name }}</strong><small>P{{ "%05d"|format(mr.registration.patient.id) }}</small></td>
+                        <td>{{ mr.registration.doctor.name }}</td>
+                        <td>{{ mr.registration.doctor.department.name }}</td>
+                        <td>{{ (mr.chief_complaint or '-')[:30] }}{% if mr.chief_complaint and mr.chief_complaint|length > 30 %}...{% endif %}</td>
+                        <td>{{ (mr.diagnosis or '-')[:30] }}{% if mr.diagnosis and mr.diagnosis|length > 30 %}...{% endif %}</td>
+                        <td>{{ mr.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td><a href="/medical-records/{{ mr.id }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i>查看</a></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="empty-state">暂无就诊记录</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

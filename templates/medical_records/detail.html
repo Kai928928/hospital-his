@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}病历详情 - HIS{% endblock %}
+{% block page_title %}病历详情{% endblock %}
+{% block content %}
+<div class="content-grid">
+    <section class="panel span-5">
+        <div class="panel-header">
+            <div>
+                <h3>就诊信息</h3>
+                <p>MR{{ "%05d"|format(record.id) }}</p>
+            </div>
+        </div>
+        <div class="kv-list">
+            <div><span>患者</span><strong>{{ record.registration.patient.name }}</strong></div>
+            <div><span>病历号</span><strong>P{{ "%05d"|format(record.registration.patient.id) }}</strong></div>
+            <div><span>科室</span><strong>{{ record.registration.doctor.department.name }}</strong></div>
+            <div><span>医生</span><strong>{{ record.registration.doctor.name }}</strong></div>
+            <div><span>就诊时间</span><strong>{{ record.created_at.strftime('%Y-%m-%d %H:%M') }}</strong></div>
+        </div>
+    </section>
+    <section class="panel span-7">
+        <div class="panel-header">
+            <div>
+                <h3>病历内容</h3>
+                <p>主诉、诊断与治疗方案。</p>
+            </div>
+        </div>
+        <div class="activity-list">
+            <div class="activity-item"><span class="activity-icon"><i class="bi bi-chat-left-text"></i></span><span><strong>主诉</strong><small>{{ record.chief_complaint or '未填写' }}</small></span></div>
+            <div class="activity-item"><span class="activity-icon"><i class="bi bi-heart-pulse"></i></span><span><strong>诊断</strong><small>{{ record.diagnosis or '未填写' }}</small></span></div>
+            <div class="activity-item"><span class="activity-icon"><i class="bi bi-clipboard2-check"></i></span><span><strong>治疗方案</strong><small>{{ record.treatment or '未填写' }}</small></span></div>
+        </div>
+    </section>
+</div>
+<div class="mt-3">
+    <a href="/medical-records" class="btn btn-outline-secondary">返回列表</a>
+    <a href="/prescriptions/create" class="btn btn-primary"><i class="bi bi-capsule-pill"></i>开立处方</a>
+</div>
+{% endblock %}

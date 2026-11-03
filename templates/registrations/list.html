@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}门诊挂号 - HIS{% endblock %}
+{% block page_title %}门诊挂号{% endblock %}
+{% block content %}
+<div class="page-heading">
+    <div>
+        <h2>挂号队列</h2>
+        <p>管理候诊、完成和取消状态，形成门诊闭环。</p>
+    </div>
+    {% if can('registration_create') %}<a href="/registrations/create" class="btn btn-primary"><i class="bi bi-clipboard-plus"></i>新建挂号</a>{% endif %}
+</div>
+
+<div class="metric-grid">
+    <div class="metric-card warning"><span>待就诊</span><strong>{{ status_counts.get('waiting', 0) }}</strong><small>含预约待诊</small></div>
+    <div class="metric-card primary"><span>已完成</span><strong>{{ status_counts.get('done', 0) }}</strong><small>已完成接诊</small></div>
+    <div class="metric-card"><span>已取消</span><strong>{{ status_counts.get('cancelled', 0) }}</strong><small>取消挂号</small></div>
+    <div class="metric-card info"><span>当前列表</span><strong>{{ registrations|length }}</strong><small>筛选结果</small></div>
+</div>
+
+<form class="search-card" method="get">
+    <input name="date" type="date" value="{{ day }}" class="form-control" aria-label="就诊日期">
+    <input class="form-control" name="q" value="{{ q }}" placeholder="患者、医生或科室">
+    <select class="form-select" name="status">
+        <option value="">全部状态</option>
+        <option value="waiting" {% if status == 'waiting' %}selected{% endif %}>待就诊</option>
+        <option value="done" {% if status == 'done' %}selected{% endif %}>已完成</option>
+        <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>已取消</option>
+    </select>
+    <button class="btn btn-primary"><i class="bi bi-funnel"></i>筛选</button>
+    <a class="btn btn-outline-secondary" href="/registrations">重置</a>
+</form>
+
+<div class="table-container">
+    <div class="table-shell">
+        <div class="table-responsive">
+            <table class="table align-middle data-table">
+                <thead><tr><th>挂号单</th><th>就诊日期 / 时段</th><th>患者</th><th>接诊医生</th><th>科室</th><th>费用</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody>
+                    {% for r in registrations %}
+                    <tr data-registration="{{ r.id }}">
+                        <td>R{{ "%05d"|format(r.id) }}</td>
+                        <td>{{ r.reg_date }}<small>{% if r.appointment %}{{ periods[r.appointment.schedule.period] }} · {{ '%03d'|format(r.appointment.queue_number) }}号{% else %}历史挂号{% endif %}</small></td>
+                        <td><strong>{{ r.patient.name }}</strong><small>P{{ "%05d"|format(r.patient.id) }}</small></td>
+                        <td>{{ r.doctor.name }}</td>
+                        <td>{{ r.doctor.department.name }}</td>
+                        <td>&yen;{{ "%.2f"|format(r.fee) }}</td>
+                        <td><span class="status-badge {{ r.status }}">{{ status_labels.get(r.status, r.status) }}</span></td>
+                        <td>
+                            {% if r.status == 'waiting' and can('registration_status') %}
+                            <form method="post" action="/registrations/{{ r.id }}/status" class="d-inline">
+                                <input type="hidden" name="payment_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="status" value="cancelled">
+                                <button class="btn btn-sm btn-outline-secondary">取消</button>
+                            </form>
+                            {% else %}
+                            <span class="text-muted">{{ '待接诊' if r.status == 'waiting' else '已处理' }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="empty-state">暂无挂号记录</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

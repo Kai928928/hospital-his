@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}开立处方 - HIS{% endblock %}
+{% block page_title %}开立处方{% endblock %}
+{% block content %}
+<div class="form-panel">
+    <div class="panel-header">
+        <div>
+            <h3>处方开立</h3>
+        </div>
+    </div>
+    {% if not catalog %}<div class="alert alert-warning">暂无在用药品，请联系管理员维护药品目录。</div>{% endif %}
+    {% if not records %}<div class="alert alert-info">暂无待开方病历。</div>{% endif %}
+    <form method="post" class="row g-3" id="prescription-form">
+        <input type="hidden" name="payment_token" value="{{ csrf_token() }}">
+        <div class="col-12">
+            <label class="form-label">关联病历</label>
+            <select name="medical_record_id" class="form-select" required>
+                {% for record in records %}
+                <option value="{{ record.id }}" {% if request.form.get('medical_record_id') == record.id|string %}selected{% endif %}>{{ record.created_at.strftime('%Y-%m-%d') }} / {{ record.registration.patient.name }} / {{ record.diagnosis or '未填写诊断' }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-12">
+            <div class="panel-header mb-2">
+                <div>
+                    <h3>药品明细</h3>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="add-drug" {% if not catalog %}disabled{% endif %}><i class="bi bi-plus-circle"></i>添加药品</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle data-table prescription-table" id="drugTable">
+                    <thead><tr><th>药品 / 规格</th><th>用法用量</th><th>数量</th><th>单价 / 单位</th><th>小计</th><th></th></tr></thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            <td data-label="药品 / 规格"><select name="medicine_id[]" class="form-select" aria-label="选择药品" required>
+                                <option value="">请选择药品</option>
+                                {% if row.medicine_id and row.medicine_id|int not in catalog|map(attribute='id')|list %}<option value="{{ row.medicine_id }}" selected disabled>原选药品不可用，请重新选择</option>{% endif %}
+                                {% for medicine in catalog %}<option value="{{ medicine.id }}" data-revision="{{ medicine.revision }}" data-cents="{{ (medicine.price * 100)|int }}" data-unit="{{ medicine.unit }}" {% if row.medicine_id == medicine.id|string %}selected{% endif %}>{{ medicine.code }} · {{ medicine.name }} · {{ medicine.specification }}</option>{% endfor %}
+                            </select><input name="revision[]" type="hidden" value="{{ row.revision }}"></td>
+                            <td data-label="用法用量"><input name="dosage[]" class="form-control" value="{{ row.dosage }}" maxlength="64" aria-label="用法用量"></td>
+                            <td data-label="数量"><input name="quantity[]" type="number" min="1" max="99999" step="1" value="{{ row.quantity }}" class="form-control" aria-label="数量" required></td>
+                            <td class="money" data-label="单价 / 单位"><span class="drug-price">—</span></td><td class="money" data-label="小计"><span class="drug-subtotal">—</span></td>
+                            <td><button type="button" class="btn btn-sm btn-outline-danger remove-drug" title="删除药品" aria-label="删除药品"><i class="bi bi-trash"></i></button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-end mt-3">处方合计 <strong class="money" id="prescription-total">&yen;0.00</strong></div>
+        </div>
+
+        <div class="col-12 d-flex gap-2">
+            <button class="btn btn-primary" {% if not records or not catalog %}disabled{% endif %}><i class="bi bi-check2-circle"></i>提交处方</button>
+            <a href="/prescriptions" class="btn btn-outline-secondary">返回</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='prescriptions.js') }}"></script>
+{% endblock %}

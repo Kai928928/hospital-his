@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}收支流水 - HIS{% endblock %}
+{% block page_title %}收支流水{% endblock %}
+{% block content %}
+{% include "bills/_tabs.html" %}
+<div class="metric-grid finance-metrics">
+    <div class="metric-card"><span>收款合计</span><strong id="income-total">&yen;{{ "%.2f"|format(income) }}</strong><small>当前查询范围</small></div>
+    <div class="metric-card danger"><span>退费合计</span><strong id="refund-total">&yen;{{ "%.2f"|format(expense) }}</strong><small>当前查询范围</small></div>
+    <div class="metric-card info"><span>净收入</span><strong id="net-total">&yen;{{ "%.2f"|format(net_amount) }}</strong><small>收款减退费</small></div>
+    <div class="metric-card"><span>流水笔数</span><strong>{{ rows|length }}</strong><small>当前筛选结果</small></div>
+</div>
+<form method="get" class="search-card transaction-search">
+    <div><label for="transaction-query" class="form-label">患者 / 流水号</label><input id="transaction-query" name="q" value="{{ q }}" class="form-control" placeholder="姓名、电话或流水号"></div>
+    <div><label for="transaction-kind" class="form-label">收支类型</label><select id="transaction-kind" name="kind" class="form-select"><option value="">全部收支</option><option value="income" {% if kind == 'income' %}selected{% endif %}>收款</option><option value="refund" {% if kind == 'refund' %}selected{% endif %}>退费</option></select></div>
+    <div><label for="start-date" class="form-label">开始日期</label><input id="start-date" type="date" name="start_date" value="{{ start_date }}" class="form-control"></div>
+    <div><label for="end-date" class="form-label">结束日期</label><input id="end-date" type="date" name="end_date" value="{{ end_date }}" class="form-control"></div>
+    <button class="btn btn-primary"><i class="bi bi-search" aria-hidden="true"></i>查询</button>
+    <a href="{{ url_for('bill_transactions') }}" class="btn btn-outline-secondary">重置</a>
+</form>
+{% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+<div class="table-container">
+    <div class="table-responsive">
+        <table class="table align-middle data-table transaction-table">
+            <thead><tr><th>发生时间</th><th>类型</th><th>患者</th><th>流水号 / 原收款流水</th><th>支付方式</th><th>金额</th><th>摘要 / 原因</th><th>操作人</th><th>账单</th></tr></thead>
+            <tbody>
+            {% for row in rows %}
+            <tr data-kind="{{ row.kind }}">
+                <td class="text-nowrap">{{ row.occurred_at.strftime('%Y-%m-%d %H:%M:%S') if row.occurred_at else '历史时间未登记' }}</td>
+                <td><span class="status-badge {{ 'refunded' if row.kind == 'refund' else 'paid' }}">{{ '退费' if row.kind == 'refund' else '收款' }}</span></td>
+                <td>{{ row.bill.registration.patient.name }}<small>P{{ '%05d'|format(row.bill.registration.patient.id) }}</small></td>
+                <td class="transaction-number">{{ row.number or '历史流水未登记' }}{% if row.original_number %}<small>原：{{ row.original_number }}</small>{% endif %}</td>
+                <td>{{ payment_methods[row.method] if row.method else '历史记录未登记' }}</td>
+                <td class="text-nowrap {{ 'expense-money' if row.kind == 'refund' else 'income-money' }}">{{ '-' if row.kind == 'refund' else '+' }}&yen;{{ '%.2f'|format(row.amount) }}</td>
+                <td class="transaction-reason">{{ row.reason }}</td>
+                <td>{{ row.operator or '历史未登记' }}</td>
+                <td><a href="{{ url_for('bill_detail', bid=row.bill.id) }}">B{{ '%05d'|format(row.bill.id) }}</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="9" class="empty-state">{{ '请修正查询条件' if error else '暂无符合条件的收支流水' }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}人员账号 - HIS Pro{% endblock %}
+{% block page_title %}人员账号{% endblock %}
+{% block content %}
+<div class="page-heading"><h2>工作人员</h2><a href="{{ url_for('auth.user_create') }}" class="btn btn-primary"><i class="bi bi-person-plus" aria-hidden="true"></i>新增账号</a></div>
+<div class="table-container"><div class="table-responsive"><table class="table align-middle data-table users-table">
+    <thead><tr><th>姓名 / 账号</th><th>岗位</th><th>关联医生</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+    <tbody>{% for user in users %}<tr data-user="{{ user.username }}">
+        <td><strong>{{ user.display_name }}</strong><small>{{ user.username }}</small></td>
+        <td>{{ role_labels[user.role] }}</td><td>{{ user.doctor.name if user.doctor else '-' }}</td>
+        <td><span class="status-badge {{ 'paid' if user.is_active else 'cancelled' }}">{{ '启用' if user.is_active else '停用' }}</span></td>
+        <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{% if user.id == current_user.id %}<a href="{{ url_for('auth.password') }}">修改本人密码</a>{% else %}
+            <form method="post" action="{{ url_for('auth.user_status', uid=user.id) }}" class="d-inline"><input type="hidden" name="payment_token" value="{{ csrf_token() }}"><input type="hidden" name="enabled" value="{{ 'no' if user.is_active else 'yes' }}"><button class="btn btn-sm btn-outline-secondary">{{ '停用' if user.is_active else '启用' }}</button></form>
+            <details class="password-reset"><summary>重置密码</summary>
+                <form method="post" action="{{ url_for('auth.user_reset', uid=user.id) }}">
+                    <input type="hidden" name="payment_token" value="{{ csrf_token() }}">
+                    <label class="form-label" for="reset-{{ user.id }}">新密码</label><input id="reset-{{ user.id }}" name="password" type="password" class="form-control mb-2" minlength="8" maxlength="128" autocomplete="new-password" required>
+                    <label class="form-label" for="confirm-{{ user.id }}">确认新密码</label><input id="confirm-{{ user.id }}" name="confirm_password" type="password" class="form-control mb-2" minlength="8" maxlength="128" autocomplete="new-password" required>
+                    <button class="btn btn-sm btn-primary">保存密码</button>
+                </form>
+            </details>
+        {% endif %}</td>
+    </tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}添加医生 - HIS{% endblock %}
+{% block page_title %}添加医生{% endblock %}
+{% block content %}
+<div class="form-panel">
+    <div class="panel-header">
+        <div>
+            <h3>医生信息</h3>
+            <p>维护门诊医生资源，供挂号分诊使用。</p>
+        </div>
+    </div>
+    <form method="post" class="row g-3">
+        <input type="hidden" name="payment_token" value="{{ csrf_token() }}">
+        <div class="col-md-6">
+            <label class="form-label">姓名</label>
+            <input name="name" class="form-control" required>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">所属科室</label>
+            <select name="department_id" class="form-select" required>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">职称</label>
+            <input name="title" class="form-control" placeholder="主任医师 / 副主任医师 / 主治医师">
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">联系电话</label>
+            <input name="phone" class="form-control">
+        </div>
+        <div class="col-12 d-flex gap-2">
+            <button class="btn btn-primary"><i class="bi bi-check2-circle"></i>保存医生</button>
+            <a href="/doctors" class="btn btn-outline-secondary">返回</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

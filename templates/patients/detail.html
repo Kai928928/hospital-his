@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}患者详情 - HIS{% endblock %}
+{% block page_title %}患者详情{% endblock %}
+{% block content %}
+<div class="content-grid">
+    <section class="panel span-4">
+        <div class="panel-header">
+            <div>
+                <h3>{{ patient.name }}</h3>
+                <p>病历号 P{{ "%05d"|format(patient.id) }}</p>
+            </div>
+            <span class="status-badge done">已建档</span>
+        </div>
+        <div class="kv-list">
+            <div><span>性别</span><strong>{{ patient.gender or '-' }}</strong></div>
+            <div><span>年龄</span><strong>{{ patient.age or '-' }}</strong></div>
+            <div><span>电话</span><strong>{{ patient.phone or '-' }}</strong></div>
+            <div><span>地址</span><strong>{{ patient.address or '-' }}</strong></div>
+            <div><span>建档时间</span><strong>{{ patient.created_at.strftime('%Y-%m-%d %H:%M') if patient.created_at else '-' }}</strong></div>
+        </div>
+    </section>
+
+    <section class="panel span-8">
+        <div class="panel-header">
+            <div>
+                <h3>挂号记录</h3>
+                <p>患者历次门诊挂号情况。</p>
+            </div>
+            {% if can('registration_create') %}<a href="/registrations/create" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-circle"></i>新挂号</a>{% endif %}
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle data-table">
+                <thead><tr><th>日期</th><th>医生</th><th>科室</th><th>状态</th><th>费用</th></tr></thead>
+                <tbody>
+                    {% for r in registrations %}
+                    <tr>
+                        <td>{{ r.reg_date }}{% if r.appointment %}<small>{{ periods[r.appointment.schedule.period] }} · {{ '%03d'|format(r.appointment.queue_number) }}号</small>{% endif %}</td>
+                        <td>{{ r.doctor.name }}</td>
+                        <td>{{ r.doctor.department.name }}</td>
+                        <td><span class="status-badge {{ r.status }}">{{ status_labels.get(r.status, r.status) }}</span></td>
+                        <td>&yen;{{ "%.2f"|format(r.fee) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="empty-state">暂无挂号记录</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    {% if can('medical_record_list') %}<section class="panel span-6">
+        <div class="panel-header"><div><h3>病历摘要</h3><p>最近就诊记录。</p></div></div>
+        <div class="activity-list">
+            {% for mr in records %}
+            <a href="/medical-records/{{ mr.id }}" class="activity-item">
+                <span class="activity-icon"><i class="bi bi-file-medical"></i></span>
+                <span><strong>{{ mr.diagnosis or '未填写诊断' }}</strong><small>{{ mr.created_at.strftime('%Y-%m-%d %H:%M') }} / {{ mr.registration.doctor.name }}</small></span>
+            </a>
+            {% else %}
+            <div class="empty-state">暂无病历记录</div>
+            {% endfor %}
+        </div>
+    </section>{% endif %}
+
+    {% if can('bill_list') %}<section class="panel span-6">
+        <div class="panel-header"><div><h3>费用记录</h3><p>患者相关账单。</p></div></div>
+        <div class="activity-list">
+            {% for bill in bills %}
+            <a href="{{ url_for('bill_detail', bid=bill.id) }}" class="activity-item">
+                <span class="activity-icon"><i class="bi bi-receipt"></i></span>
+                <span><strong>&yen;{{ "%.2f"|format(bill.total_amount) }}</strong><small>{% if bill.is_void %}已作废{% elif bill.refund %}已退费{% elif bill.is_paid %}已缴费{% else %}待缴费{% endif %} / {{ bill.registration.reg_date }}</small></span>
+            </a>
+            {% else %}
+            <div class="empty-state">暂无费用记录</div>
+            {% endfor %}
+        </div>
+    </section>{% endif %}
+</div>
+<div class="mt-3"><a href="/patients" class="btn btn-outline-secondary">返回列表</a></div>
+{% endblock %}
